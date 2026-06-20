@@ -26,6 +26,29 @@ def load_scene_cfg(scene_path):
     return scene_cfg
 
 
+def normalize_scene_path(raw_scene_path):
+    if isinstance(raw_scene_path, (str, np.str_)):
+        scene_path = str(raw_scene_path)
+    else:
+        scene_path_arr = np.asarray(raw_scene_path)
+        if scene_path_arr.shape == ():
+            scene_path = str(scene_path_arr.item())
+        else:
+            scene_path = str(scene_path_arr.reshape(-1)[0])
+
+    content_prefix = "src/curobo/content/"
+    if content_prefix in scene_path:
+        scene_path = scene_path.split(content_prefix, 1)[1]
+
+    if not os.path.exists(scene_path):
+        raise FileNotFoundError(
+            f"Scene config not found after path normalization: {scene_path}. "
+            f"Raw scene_path: {raw_scene_path!r}"
+        )
+
+    return scene_path
+
+
 def BODex(params):
     data_file, configs = params[0], params[1]
 
@@ -33,7 +56,7 @@ def BODex(params):
     robot_pose = raw_data["robot_pose"][0]
     new_data = {}
 
-    scene_path = raw_data["scene_path"][0].split("src/curobo/content/")[1]
+    scene_path = normalize_scene_path(raw_data["scene_path"])
     scene_cfg = load_scene_cfg(scene_path)
     obj_name = scene_cfg["task"]["obj_name"]
     new_data["obj_scale"] = scene_cfg["scene"][obj_name]["scale"][0]
